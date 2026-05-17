@@ -1,65 +1,62 @@
 #!/usr/bin/env python3
+"""Select a nousresearch/hermes-agent Docker image tag and write it to .env."""
 import json
-import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
-REPO = "NousResearch/hermes-agent"
+IMAGE = "nousresearch/hermes-agent"
 ENV_FILE = Path(__file__).parent / ".env"
-ENV_KEY = "HERMES_COMMIT"
+ENV_KEY = "HERMES_TAG"
+TAGS_URL = f"https://hub.docker.com/v2/repositories/{IMAGE}/tags?page_size=10&ordering=last_updated"
 
 
-def gh(*args):
-    result = subprocess.run(["gh", *args], capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"gh error: {result.stderr.strip()}", file=sys.stderr)
-        sys.exit(1)
-    return result.stdout
+def fetch_tags():
+    req = urllib.request.Request(TAGS_URL, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        data = json.loads(resp.read())
+    return data.get("results", [])
 
 
-def resolve_tag_to_commit(tag):
-    ref_data = json.loads(gh("api", f"repos/{REPO}/git/ref/tags/{tag}"))
-    obj = ref_data["object"]
-    if obj["type"] == "commit":
-        return obj["sha"]
-    # annotated tag — need one more hop
-    tag_data = json.loads(gh("api", f"repos/{REPO}/git/tags/{obj['sha']}"))
-    return tag_data["object"]["sha"]
+def short_digest(tag):
+    for img in tag.get("images", []):
+        if img.get("architecture") == "amd64" and img.get("digest"):
+            return img["digest"][:19]  # sha256:0123456789
+    return ""
 
 
 def main():
-    print(f"Fetching last 10 releases from {REPO}...")
-    releases = json.loads(
-        gh("release", "list", "--repo", REPO, "--limit", "10",
-           "--json", "tagName,name,publishedAt,isPrerelease")
-    )
+    print(f"Fetching tags for {IMAGE} from Docker Hub ...")
+    try:
+        tags = fetch_tags()
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
-    if not releases:
-        print("No releases found.")
+    if not tags:
+        print("No tags found.")
         sys.exit(1)
 
     print()
-    for i, r in enumerate(releases, 1):
-        pre = " [pre]" if r["isPrerelease"] else ""
-        date = r["publishedAt"][:10]
-        print(f"  {i:2}.  {r['tagName']:<20}  {r['name']:<30}  {date}{pre}")
+    for i, tag in enumerate(tags, 1):
+        name = tag["name"]
+        size_mb = tag.get("full_size", 0) // 1_000_000
+        pushed = (tag.get("tag_last_pushed") or "")[:10]
+        digest = short_digest(tag)
+        print(f"  {i:2}.  {name:<20}  {pushed}  {size_mb:>5} MB  {digest}")
 
     print()
     while True:
         try:
-            raw = input(f"Select release [1-{len(releases)}]: ").strip()
+            raw = input(f"Select tag [1-{len(tags)}]: ").strip()
             idx = int(raw) - 1
-            if 0 <= idx < len(releases):
+            if 0 <= idx < len(tags):
                 break
-            print(f"  Please enter a number between 1 and {len(releases)}.")
+            print(f"  Please enter a number between 1 and {len(tags)}.")
         except (ValueError, EOFError):
             print("  Invalid input.")
 
-    selected = releases[idx]
-    tag = selected["tagName"]
-    print(f"\nResolving commit SHA for tag {tag} ...")
-    commit = resolve_tag_to_commit(tag)
-    print(f"  Commit: {commit}")
+    selected_tag = tags[idx]["name"]
 
     current = ENV_FILE.read_text()
     current_value = next(
@@ -67,15 +64,13 @@ def main():
          if line.startswith(f"{ENV_KEY}=")),
         None,
     )
-    if current_value == commit:
-        print(f"\n{ENV_KEY} is already set to this commit. Nothing to do.")
+
+    if current_value == selected_tag:
+        print(f"\n{ENV_KEY} is already set to '{selected_tag}'. Nothing to do.")
         sys.exit(0)
 
     print(f"\nWill update {ENV_FILE.name}:")
-    if current_value:
-        print(f"  {current_value}  →  {commit}")
-    else:
-        print(f"  (not set)  →  {commit}")
+    print(f"  {current_value or '(not set)'}  →  {selected_tag}")
 
     confirm = input("Confirm? [y/N] ").strip().lower()
     if confirm != "y":
@@ -87,16 +82,17 @@ def main():
     new_lines = []
     for line in lines:
         if line.startswith(f"{ENV_KEY}="):
-            new_lines.append(f"{ENV_KEY}={commit}\n")
+            new_lines.append(f"{ENV_KEY}={selected_tag}\n")
             updated = True
         else:
             new_lines.append(line)
 
     if not updated:
-        new_lines.insert(0, f"{ENV_KEY}={commit}\n")
+        new_lines.insert(0, f"{ENV_KEY}={selected_tag}\n")
 
     ENV_FILE.write_text("".join(new_lines))
-    print(f"Done. {ENV_KEY}={commit}")
+    print(f"Done. {ENV_KEY}={selected_tag}")
+    print(f"\nRun:  docker compose pull && docker compose up -d")
 
 
 if __name__ == "__main__":

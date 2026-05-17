@@ -21,37 +21,24 @@ services:
       - hermes-net
 
   hermes:
-    build:
-      context: .
-      args:
-        HERMES_COMMIT: ${HERMES_COMMIT}
+    image: nousresearch/hermes-agent:${HERMES_TAG:-latest}
     container_name: hermes
     restart: unless-stopped
+    command: gateway run
     ports:
-      - "9119:9119"
+      - "8642:8642"   # Gateway API
+      - "9119:9119"   # Dashboard
     depends_on:
       ollama:
         condition: service_healthy
     environment:
-      # Ollama
       - OLLAMA_HOST=http://ollama:11434
-
-      # Telegram (optional)
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
-      - TELEGRAM_HOME_CHANNEL=${TELEGRAM_HOME_CHANNEL:-}
-
-      # Hermes Config
-      - HERMES_HUMAN_DELAY_MODE=${HERMES_HUMAN_DELAY_MODE:-false}
+      - HERMES_DASHBOARD=1
       - HERMES_DASHBOARD_TUI=1
     volumes:
-      - ./config:/root/.hermes
-      - hermes_data:/data
+      - ./config:/opt/data
     networks:
       - hermes-net
-
-volumes:
-  hermes_data:
 
 networks:
   hermes-net:
