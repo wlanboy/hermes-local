@@ -77,6 +77,12 @@ Der Chat-Tab ist über das Dashboard erreichbar.
 
 Wer [LM Studio](https://lmstudio.ai) statt Ollama nutzt, kann Hermes ohne Docker Compose starten. Voraussetzung: LM Studio läuft lokal und hat den Server auf Port `1234` aktiviert.
 
+Vor dem Start muss die mitgelieferte Konfiguration kopiert werden:
+
+```bash
+cp llm-studio-config.yaml config/config.yaml
+```
+
 ```bash
 chmod -R a+rw ./config
 docker run --rm \
