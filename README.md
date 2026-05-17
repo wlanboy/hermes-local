@@ -43,7 +43,8 @@ Die `.env` enthält folgende Variablen:
 
 | Variable | Beschreibung | Standardwert |
 |---|---|---|
-| `HERMES_TAG` | Docker-Image-Tag von Docker Hub | `latest` |
+| `HERMES_TAG` | Docker-Image-Tag für Hermes | `latest` |
+| `OLLAMA_TAG` | Docker-Image-Tag für Ollama | `latest` |
 
 Messenger-Secrets in `config/.env` eintragen:
 
@@ -139,15 +140,19 @@ docker exec ollama ollama pull google/gemma-4-e2b
 docker compose restart hermes
 ```
 
-## Hermes aktualisieren
+## Aktualisieren
 
-`HERMES_TAG` in der `.env` bestimmt, welches Image von Docker Hub genutzt wird. Das mitgelieferte Script listet die verfügbaren Tags und schreibt den gewählten automatisch in die `.env`:
+Die mitgelieferten Skripte listen die verfügbaren Releases und schreiben den gewählten Tag automatisch in die `.env`:
 
 ```bash
+# Hermes-Release auswählen
 python3 select-hermes-commit.py
+
+# Ollama-Release auswählen
+python3 select-ollama-tag.py
 ```
 
-Danach das Image aktualisieren:
+Danach die Images aktualisieren:
 
 ```bash
 docker compose pull && docker compose up -d
@@ -174,7 +179,8 @@ docker exec ollama ollama list
 ```
 hermes-local/
 ├── docker-compose.yml        # Orchestrierung
-├── select-hermes-commit.py   # Interaktives Update-Script
+├── select-hermes-commit.py   # Interaktives Release-Auswahl-Script für Hermes
+├── select-ollama-tag.py      # Interaktives Release-Auswahl-Script für Ollama
 ├── llm-studio-config.yaml    # Vorlage für LM Studio statt Ollama
 ├── .env                      # Aktive Konfiguration (nicht eingecheckt)
 ├── .env.example              # Vorlage für Umgebungsvariablen
