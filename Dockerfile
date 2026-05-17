@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Hermes — pinned to a specific commit for reproducibility
 # Update this SHA when you want to upgrade Hermes
-ARG HERMES_COMMIT=c23a87bc163b188abc7e40fbdccf07a9739231c3
+ARG HERMES_COMMIT
 RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_COMMIT}/scripts/install.sh" \
     | bash -s -- --skip-setup \
     && pip install --no-cache-dir 'hermes-agent[web,pty]'

@@ -14,11 +14,11 @@ mkdir -p "$HERMES_HOME/memories" \
          "$HERMES_HOME/logs"
 
 # Write config to BOTH filenames — CLI uses cli-config.yaml, gateway uses config.yaml
-cp /app/hermes/cli-config.yaml "$HERMES_HOME/cli-config.yaml"
-cp /app/hermes/cli-config.yaml "$HERMES_HOME/config.yaml"
+cp /app/config/cli-config.yaml "$HERMES_HOME/cli-config.yaml"
+cp /app/config/cli-config.yaml "$HERMES_HOME/config.yaml"
 
 # Write SOUL.md — agent identity/persona
-cp /app/hermes/SOUL.md "$HERMES_HOME/SOUL.md"
+cp /app/config/SOUL.md "$HERMES_HOME/SOUL.md"
 
 # Write ALL secrets to ~/.hermes/.env — Hermes reads from here, not system env
 cat > "$HERMES_HOME/.env" << EOF
