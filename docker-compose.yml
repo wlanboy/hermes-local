@@ -35,8 +35,6 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - HERMES_DASHBOARD=1
       - HERMES_DASHBOARD_TUI=1
-      - HERMES_UID=1000
-      - HERMES_GID=1000
     volumes:
       - ./config:/opt/data
     networks:
