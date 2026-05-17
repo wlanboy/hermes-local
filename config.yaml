@@ -1,8 +1,9 @@
 model:
   provider: custom
-  default: "qwen/qwen3.5-9b"
+  default: "google/gemma-4-e2b"
   base_url: "http://localhost:1234/v1"
   api_key: "lm-studio"
+  context_length: 131072
 
 terminal:
   backend: "local"
