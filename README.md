@@ -37,7 +37,7 @@ Konfiguration ist auf zwei Dateien aufgeteilt:
 | Datei | Zweck |
 |---|---|
 | `.env` | Docker-Level — Image-Tag und Hermes-Verhalten |
-| `config/.env` | Hermes-intern — Telegram- und Signal-Secrets |
+| `config/.env` | Hermes-intern — Telegram-, Signal- und Mattermost-Secrets |
 
 Die `.env` enthält folgende Variablen:
 
@@ -181,7 +181,7 @@ hermes-local/
 └── config/                   # Persistentes Hermes-Datenverzeichnis (/opt/data)
     ├── config.yaml           # Hermes-Konfiguration (Modell, Memory, …)
     ├── SOUL.md               # Agenten-Persona
-    ├── .env.example          # Vorlage für Telegram- und Signal-Secrets
+    ├── .env.example          # Vorlage für Telegram-, Signal- und Mattermost-Secrets
     └── .env                  # Hermes-Secrets (Telegram-Bot-Token, nicht eingecheckt)
 ```
 
