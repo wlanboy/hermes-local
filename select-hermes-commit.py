@@ -6,57 +6,113 @@ import urllib.request
 from pathlib import Path
 
 IMAGE = "nousresearch/hermes-agent"
+GITHUB_REPO = "NousResearch/hermes-agent"
 ENV_FILE = Path(__file__).parent / ".env"
 ENV_KEY = "HERMES_TAG"
-TAGS_URL = f"https://hub.docker.com/v2/repositories/{IMAGE}/tags?page_size=10&ordering=last_updated"
+TAGS_URL = f"https://hub.docker.com/v2/repositories/{IMAGE}/tags?page_size=100&ordering=last_updated"
+RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page=10"
+
+GH_HEADERS = {"Accept": "application/vnd.github+json", "User-Agent": "select-hermes-commit"}
 
 
-def fetch_tags():
+def fetch_docker_tags():
     req = urllib.request.Request(TAGS_URL, headers={"Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=10) as resp:
         data = json.loads(resp.read())
-    return data.get("results", [])
+    return {t["name"]: t for t in data.get("results", [])}
+
+
+def fetch_github_releases():
+    try:
+        req = urllib.request.Request(RELEASES_URL, headers=GH_HEADERS)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return []
 
 
 def short_digest(tag):
     for img in tag.get("images", []):
         if img.get("architecture") == "amd64" and img.get("digest"):
-            return img["digest"][:19]  # sha256:0123456789
+            return img["digest"][:19]
     return ""
 
 
-def main():
-    print(f"Fetching tags for {IMAGE} from Docker Hub ...")
-    try:
-        tags = fetch_tags()
-    except Exception as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        sys.exit(1)
+def format_body(body, indent="       ", max_lines=4, width=72):
+    if not body:
+        return ""
+    lines = []
+    for line in body.splitlines():
+        line = line.rstrip()
+        if not line or line.startswith("<!--"):
+            continue
+        if len(line) > width:
+            line = line[:width - 3] + "..."
+        lines.append(f"{indent}{line}")
+        if len(lines) >= max_lines:
+            lines.append(f"{indent}...")
+            break
+    return "\n".join(lines)
 
-    if not tags:
-        print("No tags found.")
-        sys.exit(1)
 
-    print()
-    for i, tag in enumerate(tags, 1):
-        name = tag["name"]
-        size_mb = tag.get("full_size", 0) // 1_000_000
-        pushed = (tag.get("tag_last_pushed") or "")[:10]
-        digest = short_digest(tag)
-        print(f"  {i:2}.  {name:<20}  {pushed}  {size_mb:>5} MB  {digest}")
-
-    print()
+def pick(prompt, count):
     while True:
         try:
-            raw = input(f"Select tag [1-{len(tags)}]: ").strip()
+            raw = input(prompt).strip()
             idx = int(raw) - 1
-            if 0 <= idx < len(tags):
-                break
-            print(f"  Please enter a number between 1 and {len(tags)}.")
+            if 0 <= idx < count:
+                return idx
+            print(f"  Bitte eine Zahl zwischen 1 und {count} eingeben.")
         except (ValueError, EOFError):
-            print("  Invalid input.")
+            print("  Ungültige Eingabe.")
 
-    selected_tag = tags[idx]["name"]
+
+def main():
+    print(f"Lade Tags von Docker Hub ({IMAGE}) ...")
+    try:
+        docker_tags = fetch_docker_tags()
+    except Exception as exc:
+        print(f"Fehler: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Lade Releases von GitHub ({GITHUB_REPO}) ...")
+    releases = fetch_github_releases()
+
+    options = []  # list of (display_name, docker_tag_name)
+
+    print()
+    for rel in releases[:5]:
+        tag_name = rel["tag_name"]
+        docker_tag = docker_tags.get(tag_name) or docker_tags.get(tag_name.lstrip("v"))
+        i = len(options) + 1
+        options.append(tag_name)
+        if docker_tag:
+            size_mb = docker_tag.get("full_size", 0) // 1_000_000
+            pushed = (docker_tag.get("tag_last_pushed") or "")[:10]
+            digest = short_digest(docker_tag)
+            meta = f"{pushed}  {size_mb:>5} MB  {digest}"
+        else:
+            meta = "(kein Docker-Tag gefunden)"
+        pre = "  \033[33m[pre-release]\033[0m" if rel.get("prerelease") else ""
+        print(f"  {i:2}.  \033[1;32m{tag_name:<20}\033[0m  {meta}{pre}")
+        print(f"       \033[1m{rel['name']}\033[0m")
+        notes = format_body(rel.get("body", ""))
+        if notes:
+            print(notes)
+        print()
+
+    if not options:
+        print("Keine Tags gefunden.")
+        sys.exit(1)
+
+    print()
+    idx = pick(f"Tag auswählen [1-{len(options)}]: ", len(options))
+    selected_tag = options[idx]
+
+    if not ENV_FILE.exists():
+        example = ENV_FILE.parent / ".env.example"
+        ENV_FILE.write_text(example.read_text() if example.exists() else f"{ENV_KEY}=latest\n")
+        print(f"\n{ENV_FILE.name} wurde neu angelegt.")
 
     current = ENV_FILE.read_text()
     current_value = next(
@@ -66,15 +122,15 @@ def main():
     )
 
     if current_value == selected_tag:
-        print(f"\n{ENV_KEY} is already set to '{selected_tag}'. Nothing to do.")
+        print(f"\n{ENV_KEY} ist bereits '{selected_tag}'. Nichts zu tun.")
         sys.exit(0)
 
-    print(f"\nWill update {ENV_FILE.name}:")
-    print(f"  {current_value or '(not set)'}  →  {selected_tag}")
+    print(f"\n{ENV_FILE.name} wird aktualisiert:")
+    print(f"  {current_value or '(nicht gesetzt)'}  →  {selected_tag}")
 
-    confirm = input("Confirm? [y/N] ").strip().lower()
+    confirm = input("Bestätigen? [y/N] ").strip().lower()
     if confirm != "y":
-        print("Aborted.")
+        print("Abgebrochen.")
         sys.exit(0)
 
     lines = current.splitlines(keepends=True)
@@ -91,8 +147,8 @@ def main():
         new_lines.insert(0, f"{ENV_KEY}={selected_tag}\n")
 
     ENV_FILE.write_text("".join(new_lines))
-    print(f"Done. {ENV_KEY}={selected_tag}")
-    print(f"\nRun:  docker compose pull && docker compose up -d")
+    print(f"Fertig. {ENV_KEY}={selected_tag}")
+    print(f"\nAusführen:  docker compose pull && docker compose up -d")
 
 
 if __name__ == "__main__":
