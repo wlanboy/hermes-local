@@ -37,23 +37,21 @@ Konfiguration ist auf zwei Dateien aufgeteilt:
 | Datei | Zweck |
 |---|---|
 | `.env` | Docker-Level — Image-Tag und Hermes-Verhalten |
-| `config/.env` | Hermes-intern — Telegram-Bot-Secrets |
+| `config/.env` | Hermes-intern — Telegram- und Signal-Secrets |
 
 Die `.env` enthält folgende Variablen:
 
 | Variable | Beschreibung | Standardwert |
 |---|---|---|
 | `HERMES_TAG` | Docker-Image-Tag von Docker Hub | `latest` |
-| `HERMES_HUMAN_DELAY_MODE` | Tipp-Simulation im Chat (`natural`, `off`) | `natural` |
-| `HERMES_ACCEPT_HOOKS` | Hermes-Hooks aktivieren (`1`/`0`) | `1` |
 
-Telegram-Bot-Secrets in `config/.env` eintragen:
+Messenger-Secrets in `config/.env` eintragen:
 
 ```bash
 cp config/.env.example config/.env
 ```
 
-Dann `config/.env` editieren und die Werte befüllen.
+Dann `config/.env` editieren und die gewünschten Werte befüllen — Telegram, Signal oder beides.
 
 ### 3. Container starten
 
@@ -183,7 +181,7 @@ hermes-local/
 └── config/                   # Persistentes Hermes-Datenverzeichnis (/opt/data)
     ├── config.yaml           # Hermes-Konfiguration (Modell, Memory, …)
     ├── SOUL.md               # Agenten-Persona
-    ├── .env.example          # Vorlage für Telegram-Secrets
+    ├── .env.example          # Vorlage für Telegram- und Signal-Secrets
     └── .env                  # Hermes-Secrets (Telegram-Bot-Token, nicht eingecheckt)
 ```
 
