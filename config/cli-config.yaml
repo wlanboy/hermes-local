@@ -1,5 +1,5 @@
 model:
-  default: "gemma4:4b"
+  default: "qwen3.5:4b"
   provider: "ollama"
 
 terminal:
