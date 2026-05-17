@@ -59,7 +59,7 @@ Beim ersten Start wird das Hermes-Image gepullt (~500 MB).
 ### 4. Modell herunterladen
 
 ```bash
-docker exec ollama ollama pull qwen3.5:4b
+docker exec ollama ollama pull google/gemma-4-e2b
 ```
 
 Das Modell wird in `~/.ollama` gespeichert und steht nach einem Neustart sofort zur Verfügung.
@@ -93,7 +93,7 @@ In [config/config.yaml](config/config.yaml) den LM Studio-Endpunkt eintragen:
 ```yaml
 model:
   provider: custom
-  default: "dein-modellname"   # exakter Name aus LM Studio (z.B. lmstudio-community/Qwen3-4B-GGUF)
+  default: "google/gemma-4-e2b"   # exakter Name aus LM Studio (z.B. lmstudio-community/Qwen3-4B-GGUF)
   base_url: "http://localhost:1234/v1"
   api_key: "lm-studio"
 ```
@@ -113,7 +113,7 @@ In [config/config.yaml](config/config.yaml) den Modellnamen anpassen:
 ```yaml
 model:
   provider: custom
-  default: "qwen3.5:4b"   # z.B. auf llama3.2:3b ändern
+  default: "google/gemma-4-e2b"
   base_url: "http://ollama:11434/v1"
   api_key: "none"
 ```
@@ -121,7 +121,7 @@ model:
 Anschließend das Modell pullen und den Container neu starten:
 
 ```bash
-docker exec ollama ollama pull llama3.2:3b
+docker exec ollama ollama pull google/gemma-4-e2b
 docker compose restart hermes
 ```
 
