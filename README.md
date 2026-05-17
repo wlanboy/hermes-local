@@ -32,21 +32,28 @@ cd hermes-local
 cp .env.example .env
 ```
 
-Die `.env` steuert den Docker-Image-Tag. Telegram und Hermes-Einstellungen gehören in `config/.env`:
+Konfiguration ist auf zwei Dateien aufgeteilt:
 
 | Datei | Zweck |
 |---|---|
-| `.env` | Docker-Level — Image-Tag (`HERMES_TAG`) |
-| `config/.env` | Hermes-intern — Telegram-Bot, Verhalten |
+| `.env` | Docker-Level — Image-Tag und Hermes-Verhalten |
+| `config/.env` | Hermes-intern — Telegram-Bot-Secrets |
 
-Telegram-Bot in `config/.env` eintragen:
+Die `.env` enthält folgende Variablen:
 
-```env
-TELEGRAM_BOT_TOKEN=dein-token
-TELEGRAM_ALLOWED_USERS=123456789
-TELEGRAM_HOME_CHANNEL=-100123456789
-TELEGRAM_HOME_CHANNEL_NAME=MeinKanal
+| Variable | Beschreibung | Standardwert |
+|---|---|---|
+| `HERMES_TAG` | Docker-Image-Tag von Docker Hub | `latest` |
+| `HERMES_HUMAN_DELAY_MODE` | Tipp-Simulation im Chat (`natural`, `off`) | `natural` |
+| `HERMES_ACCEPT_HOOKS` | Hermes-Hooks aktivieren (`1`/`0`) | `1` |
+
+Telegram-Bot-Secrets in `config/.env` eintragen:
+
+```bash
+cp config/.env.example config/.env
 ```
+
+Dann `config/.env` editieren und die Werte befüllen.
 
 ### 3. Container starten
 
@@ -59,7 +66,9 @@ Beim ersten Start wird das Hermes-Image gepullt (~500 MB).
 ### 4. Modell herunterladen
 
 ```bash
+docker exec ollama ollama pull qwen3.5:2b
 docker exec ollama ollama pull qwen3.5:4b
+docker exec ollama ollama pull qwen3.5:9b
 docker exec ollama ollama pull google/gemma-4-e2b
 ```
 
@@ -168,13 +177,24 @@ docker exec ollama ollama list
 hermes-local/
 ├── docker-compose.yml        # Orchestrierung
 ├── select-hermes-commit.py   # Interaktives Update-Script
+├── llm-studio-config.yaml    # Vorlage für LM Studio statt Ollama
 ├── .env                      # Aktive Konfiguration (nicht eingecheckt)
 ├── .env.example              # Vorlage für Umgebungsvariablen
 └── config/                   # Persistentes Hermes-Datenverzeichnis (/opt/data)
     ├── config.yaml           # Hermes-Konfiguration (Modell, Memory, …)
     ├── SOUL.md               # Agenten-Persona
-    ├── .env                  # Hermes-Secrets (Telegram, Verhalten)
-    ├── memories/
-    ├── sessions/
-    └── skills/
+    ├── .env.example          # Vorlage für Telegram-Secrets
+    └── .env                  # Hermes-Secrets (Telegram-Bot-Token, nicht eingecheckt)
 ```
+
+## Modellvergleich
+
+Alle Werte für Q4_K_M-Quantisierung bei vollem 128K Kontext (float16 KV-Cache). RAM-Werte schließen Modellgewichte, KV-Cache und Ollama-Overhead ein.
+
+| Modell | Parameter | Gewichte | KV-Cache (128K) | RAM gesamt | CPU-tauglich |
+|---|---|---|---|---|---|
+| `google/gemma-4-e2b` | 2B | ~1,3 GB | ~4 GB | ~6 GB | langsam |
+| `qwen3.5:2b` | 2B | ~1,4 GB | ~6 GB | ~8 GB | langsam |
+| `qwen3.5:4b` | 4B | ~2,5 GB | ~10 GB | ~13 GB | ✗ |
+| `qwen3.5:9b` | 9B | ~5,5 GB | ~18 GB | ~24 GB | ✗ |
+
