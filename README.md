@@ -59,6 +59,7 @@ Beim ersten Start wird das Hermes-Image gepullt (~500 MB).
 ### 4. Modell herunterladen
 
 ```bash
+docker exec ollama ollama pull qwen3.5:4b
 docker exec ollama ollama pull google/gemma-4-e2b
 ```
 
