@@ -8,13 +8,13 @@ Lokale KI-Assistenten-Umgebung auf Basis von [Hermes](https://github.com/NousRes
 |---|---|---|
 | **Ollama** | Lokaler LLM-Server | `11434` |
 | **Hermes** | KI-Agent mit Web-Dashboard | `9119` |
+| **Hermes Gateway** | OpenAI-kompatibler API-Server | `8642` |
 
 Das Standard-Modell ist `qwen3.5:4b` — CPU-tauglich und benötigt ca. 3 GB RAM.
 
 ## Voraussetzungen
 
 - [Docker](https://docs.docker.com/get-docker/) und [Docker Compose](https://docs.docker.com/compose/install/)
-- [GitHub CLI](https://cli.github.com/) (`gh`) — nur für das Update-Script benötigt
 - ca. 5 GB freier Speicherplatz (Modell + Images)
 
 ## Schritt-für-Schritt
@@ -32,26 +32,29 @@ cd hermes-local
 cp .env.example .env
 ```
 
-Die `.env` enthält den gepinnten Hermes-Commit und optionale Telegram-Einstellungen:
+Die `.env` steuert den Docker-Image-Tag. Telegram und Hermes-Einstellungen gehören in `config/.env`:
+
+| Datei | Zweck |
+|---|---|
+| `.env` | Docker-Level — Image-Tag (`HERMES_TAG`) |
+| `config/.env` | Hermes-intern — Telegram-Bot, Verhalten |
+
+Telegram-Bot in `config/.env` eintragen:
 
 ```env
-# Hermes-Version (Commit-SHA aus NousResearch/hermes-agent)
-HERMES_COMMIT=a91a57fa5a13d516c38b07a141a9ce8a3daabeb0
-
-# Optional: Telegram Bot
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_ALLOWED_USERS=
-TELEGRAM_HOME_CHANNEL=
-TELEGRAM_HOME_CHANNEL_NAME=
+TELEGRAM_BOT_TOKEN=dein-token
+TELEGRAM_ALLOWED_USERS=123456789
+TELEGRAM_HOME_CHANNEL=-100123456789
+TELEGRAM_HOME_CHANNEL_NAME=MeinKanal
 ```
 
-### 3. Container bauen und starten
+### 3. Container starten
 
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
 
-Beim ersten Start wird das Hermes-Image gebaut (~2–3 Minuten).
+Beim ersten Start wird das Hermes-Image gepullt (~500 MB).
 
 ### 4. Modell herunterladen
 
@@ -71,12 +74,14 @@ Der Chat-Tab ist über das Dashboard erreichbar.
 
 ## Modell wechseln
 
-In [config/cli-config.yaml](config/cli-config.yaml) das Modell anpassen:
+In [config/config.yaml](config/config.yaml) den Modellnamen anpassen:
 
 ```yaml
 model:
+  provider: custom
   default: "qwen3.5:4b"   # z.B. auf llama3.2:3b ändern
-  provider: "ollama"
+  base_url: "http://ollama:11434/v1"
+  api_key: "none"
 ```
 
 Anschließend das Modell pullen und den Container neu starten:
@@ -88,16 +93,16 @@ docker compose restart hermes
 
 ## Hermes aktualisieren
 
-`HERMES_COMMIT` in der `.env` bestimmt, welcher Commit von [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) gebaut wird. Das mitgelieferte Script listet die letzten 10 Releases und schreibt den gewählten Commit automatisch in die `.env`:
+`HERMES_TAG` in der `.env` bestimmt, welches Image von Docker Hub genutzt wird. Das mitgelieferte Script listet die verfügbaren Tags und schreibt den gewählten automatisch in die `.env`:
 
 ```bash
 python3 select-hermes-commit.py
 ```
 
-Danach das Image neu bauen:
+Danach das Image aktualisieren:
 
 ```bash
-docker compose up --build -d
+docker compose pull && docker compose up -d
 ```
 
 ## Nützliche Befehle
@@ -120,13 +125,15 @@ docker exec ollama ollama list
 
 ```
 hermes-local/
-├── Dockerfile                # Hermes Image
 ├── docker-compose.yml        # Orchestrierung
-├── entrypoint.sh             # Startskript (Konfig + Dashboard)
 ├── select-hermes-commit.py   # Interaktives Update-Script
 ├── .env                      # Aktive Konfiguration (nicht eingecheckt)
 ├── .env.example              # Vorlage für Umgebungsvariablen
-└── config/
-    ├── cli-config.yaml       # Hermes-Konfiguration (Modell, Memory, …)
-    └── SOUL.md               # Agenten-Persona
+└── config/                   # Persistentes Hermes-Datenverzeichnis (/opt/data)
+    ├── config.yaml           # Hermes-Konfiguration (Modell, Memory, …)
+    ├── SOUL.md               # Agenten-Persona
+    ├── .env                  # Hermes-Secrets (Telegram, Verhalten)
+    ├── memories/
+    ├── sessions/
+    └── skills/
 ```
