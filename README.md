@@ -72,6 +72,40 @@ http://localhost:9119
 
 Der Chat-Tab ist über das Dashboard erreichbar.
 
+## LM Studio verwenden (Linux)
+
+Wer [LM Studio](https://lmstudio.ai) statt Ollama nutzt, kann Hermes ohne Docker Compose starten. Voraussetzung: LM Studio läuft lokal und hat den Server auf Port `1234` aktiviert.
+
+```bash
+chmod -R a+rw ./config
+docker run --rm \
+  --name hermes \
+  --network=host \
+  -e HERMES_DASHBOARD=1 \
+  -e HERMES_DASHBOARD_TUI=1 \
+  -v ./config:/opt/data \
+  nousresearch/hermes-agent:latest \
+  gateway run
+```
+
+In [config/config.yaml](config/config.yaml) den LM Studio-Endpunkt eintragen:
+
+```yaml
+model:
+  provider: custom
+  default: "dein-modellname"   # exakter Name aus LM Studio (z.B. lmstudio-community/Qwen3-4B-GGUF)
+  base_url: "http://localhost:1234/v1"
+  api_key: "lm-studio"
+```
+
+Dashboard öffnen: `http://localhost:9119`
+
+Für einen interaktiven Chat direkt im Terminal:
+
+```bash
+docker exec -it hermes /opt/hermes/.venv/bin/hermes chat
+```
+
 ## Modell wechseln
 
 In [config/config.yaml](config/config.yaml) den Modellnamen anpassen:
