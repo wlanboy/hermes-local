@@ -1,6 +1,9 @@
-# Hermes Local
+# Hermes Local – Lokale KI‑Assistenten‑Umgebung (offline)
 
-Lokale KI-Assistenten-Umgebung auf Basis von [Hermes](https://github.com/NousResearch/hermes-agent) und [Ollama](https://ollama.com). Läuft vollständig offline — keine Cloud-Abhängigkeit, keine Daten verlassen den Rechner.
+Hermes Local ist eine vollständig offline laufende KI‑Assistenten‑Umgebung auf Basis von Hermes und Ollama.
+Keine Cloud‑Dienste, keine externen Abhängigkeiten — alle Daten bleiben lokal auf dem Rechner.
+
+Das Setup kombiniert einen lokalen LLM‑Server, ein Web‑Dashboard und eine OpenAI‑kompatible API, sodass sich KI‑Modelle wie in der Cloud nutzen lassen, aber komplett lokal betrieben werden.
 
 ## Überblick
 
