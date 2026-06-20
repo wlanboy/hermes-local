@@ -1,6 +1,7 @@
 services:
 
   ollama:
+    profiles: [ollama]
     image: ollama/ollama:${OLLAMA_TAG:-latest}
     container_name: ollama
     restart: unless-stopped
@@ -20,6 +21,13 @@ services:
     networks:
       - hermes-net
 
+  hermes-init:
+    image: busybox
+    volumes:
+      - ./config:/source:ro
+      - hermes-data:/opt/data
+    command: sh -c "cp -r /source/. /opt/data/"
+
   hermes:
     image: nousresearch/hermes-agent:${HERMES_TAG:-latest}
     container_name: hermes
@@ -29,17 +37,23 @@ services:
       - "8642:8642"   # Gateway API
       - "9119:9119"   # Dashboard
     depends_on:
-      ollama:
-        condition: service_healthy
+      hermes-init:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - HERMES_DASHBOARD=1
       - HERMES_DASHBOARD_TUI=1
+      - HERMES_DASHBOARD_INSECURE=1
     volumes:
-      - ./config:/opt/data
+      - hermes-data:/opt/data
     networks:
       - hermes-net
 
 networks:
   hermes-net:
     driver: bridge
+
+volumes:
+  hermes-data:

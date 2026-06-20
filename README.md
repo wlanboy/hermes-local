@@ -59,6 +59,14 @@ Dann `config/.env` editieren und die gewünschten Werte befüllen — Telegram, 
 
 ### 3. Container starten
 
+**Mit Ollama** (lokaler LLM-Server):
+
+```bash
+docker compose --profile ollama up -d
+```
+
+**Ohne Ollama** (z. B. LM Studio läuft bereits lokal):
+
 ```bash
 docker compose up -d
 ```
@@ -84,35 +92,27 @@ http://localhost:9119
 
 Der Chat-Tab ist über das Dashboard erreichbar.
 
-## LM Studio verwenden (Linux)
+## LM Studio verwenden
 
-Wer [LM Studio](https://lmstudio.ai) statt Ollama nutzt, kann Hermes ohne Docker Compose starten. Voraussetzung: LM Studio läuft lokal und hat den Server auf Port `1234` aktiviert.
-
-Vor dem Start muss die mitgelieferte Konfiguration kopiert werden:
+Wer [LM Studio](https://lmstudio.ai) statt Ollama nutzt: LM Studio lokal starten, Server auf Port `1234` aktivieren, dann die mitgelieferte Konfiguration aktivieren:
 
 ```bash
-cp llm-studio-config.yaml config/config.yaml
+cp config/config-extern.yaml config/config.yaml
 ```
+
+Anschließend hermes ohne Ollama starten:
 
 ```bash
-chmod -R a+rw ./config
-docker run --rm \
-  --name hermes \
-  --network=host \
-  -e HERMES_DASHBOARD=1 \
-  -e HERMES_DASHBOARD_TUI=1 \
-  -v ./config:/opt/data \
-  nousresearch/hermes-agent:latest \
-  gateway run
+docker compose up -d
 ```
 
-In [config/config.yaml](config/config.yaml) den LM Studio-Endpunkt eintragen:
+In [config/config-extern.yaml](config/config-extern.yaml) bei Bedarf Modell und Endpunkt anpassen:
 
 ```yaml
 model:
   provider: custom
   default: "google/gemma-4-e2b"   # exakter Name aus LM Studio (z.B. lmstudio-community/Qwen3-4B-GGUF)
-  base_url: "http://localhost:1234/v1"
+  base_url: "http://host.docker.internal:1234/v1"
   api_key: "lm-studio"
 ```
 
@@ -142,6 +142,13 @@ Anschließend das Modell pullen und den Container neu starten:
 docker exec ollama ollama pull google/gemma-4-e2b
 docker compose restart hermes
 ```
+
+> **Hinweis:** Die Konfiguration in `config/` wird nur einmalig beim ersten Start in das Docker Volume `hermes-data` kopiert (durch den Init-Container). Lokale Änderungen an `config/*.yaml` oder `SOUL.md` werden erst nach einem Volume-Reset wirksam:
+>
+> ```bash
+> docker compose down -v
+> docker compose up -d
+> ```
 
 ## Aktualisieren
 
@@ -187,7 +194,7 @@ hermes-local/
 ├── llm-studio-config.yaml    # Vorlage für LM Studio statt Ollama
 ├── .env                      # Aktive Konfiguration (nicht eingecheckt)
 ├── .env.example              # Vorlage für Umgebungsvariablen
-└── config/                   # Persistentes Hermes-Datenverzeichnis (/opt/data)
+└── config/                   # Konfigurationsquelle — wird beim ersten Start in das Docker Volume hermes-data kopiert
     ├── config.yaml           # Hermes-Konfiguration (Modell, Memory, …)
     ├── SOUL.md               # Agenten-Persona
     ├── .env.example          # Vorlage für Telegram-, Signal- und Mattermost-Secrets
