@@ -45,7 +45,8 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - HERMES_DASHBOARD=1
       - HERMES_DASHBOARD_TUI=1
-      - HERMES_DASHBOARD_INSECURE=1
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=admin
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=admin
     volumes:
       - hermes-data:/opt/data
     networks:
